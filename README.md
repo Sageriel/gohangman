@@ -1,2 +1,2 @@
 # gohangman
-Simple hangman game in go
+Simple hangman game written in GOLANG
