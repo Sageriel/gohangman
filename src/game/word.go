@@ -23,7 +23,7 @@ func GetRandomWord() string {
 	if err != nil {
 		panic(err)
 	}
-	var random = rand.IntN(20)
+	var random = rand.IntN(200)
 	var wordList WordList
 
 	err = json.Unmarshal(data, &wordList)

@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"os/exec"
 	"runtime"
@@ -39,8 +40,6 @@ func BlankDisplay(s string) string {
 /*
 * This function is used to clear the terminal screen,
 * providing a cleaner and more user-friendly experience during gameplay.
-*
-*
  */
 func ClearScreen() {
 	if runtime.GOOS == "windows" {
@@ -121,6 +120,17 @@ O   |
 	fmt.Println("")
 }
 
+func HP(fault int) {
+	for i := 0; i < 6; i++ {
+		if i < 6-fault {
+			fmt.Print("❤ ")
+		} else {
+			fmt.Print(" ♡")
+		}
+	}
+	fmt.Println()
+}
+
 /*
 * Colors used to create a more visually appealing and user-friendly interface.
  */
@@ -147,12 +157,15 @@ func Game() {
 	var fault = 0
 	myWordRunes := []rune(BlankBuilder(wordLength))
 	var wrongLetters []string
+	var hint = 1
+	var score int = 0
 
 	ClearScreen()
 	for string(myWordRunes) != word {
 		DisplayHangman(fault)
-		//fmt.Println(word)
-		fmt.Println(BlankDisplay(string(myWordRunes)), "faults:", fault, "/6")
+		fmt.Print(BlankDisplay(string(myWordRunes)))
+		fmt.Print(" ")
+		HP(fault)
 		fmt.Print("Wrong letters: ")
 		for _, letter := range wrongLetters {
 			fmt.Print(string(letter), ", ")
@@ -169,7 +182,6 @@ func Game() {
 			continue
 		}
 		input = strings.ToLower(input)
-		inputRune := []rune(input)[0]
 
 		if input == "-" {
 			ClearScreen()
@@ -177,13 +189,72 @@ func Game() {
 			return
 		}
 
+		if input == "," {
+			ClearScreen()
+			fault = 6
+		}
+
 		if fault >= 5 {
 			fmt.Println(Red + "You lost! :(" + Reset)
+			fmt.Println(Red + "The word you were supposed to guess was: " + word + Reset)
+			if score <= 0 {
+				score = 0
+			}
+			fmt.Print(Red + "Score: " + Reset)
+			fmt.Print(score)
 			DisplayHangman(6)
 			return
 		}
-		found := false
 
+		if input == "." {
+			if hint <= 0 {
+				fmt.Println(Red + "Already used your hint!" + Reset)
+				fmt.Println("")
+				continue
+			}
+
+			var remaining []int
+			for k := 0; k < wordLength; k++ {
+				if myWordRunes[k] == '_' {
+					remaining = append(remaining, k)
+				}
+			}
+			if len(remaining) == 0 {
+				continue
+			}
+
+			randomIndex := remaining[rand.IntN(len(remaining))]
+			hintLetter := wordRunes[randomIndex]
+
+			for k := 0; k < wordLength; k++ {
+				if wordRunes[k] == hintLetter {
+					myWordRunes[k] = hintLetter
+				}
+			}
+
+			wrongLetters = append(wrongLetters, input)
+			hint--
+			fmt.Println(Green + "Hint used!" + Reset)
+			fmt.Println("")
+			continue
+		}
+
+		inputRune := []rune(input)[0]
+
+		exists := false
+		for _, letter := range wrongLetters {
+			if letter == input {
+				exists = true
+				break
+			}
+		}
+		if exists {
+			fmt.Println(Red + "You already tried that letter!" + Reset)
+			fmt.Println("")
+			continue
+		}
+
+		found := false
 		for k := 0; k < wordLength; k++ {
 			if inputRune == wordRunes[k] {
 				myWordRunes[k] = inputRune
@@ -194,30 +265,22 @@ func Game() {
 		if found {
 			fmt.Println(Green + "Nice one!" + Reset)
 			fmt.Println("")
+			score = score + 10
+		} else {
+			wrongLetters = append(wrongLetters, input)
+			fault++
+			fmt.Println(Red + "Wrong guess!" + Reset)
+			fmt.Println("")
+			score = score - 5
 		}
-		if !found {
-			exists := false
-
-			for _, letter := range wrongLetters {
-				if letter == input {
-					exists = true
-					break
-				}
-			}
-
-			if !exists {
-				wrongLetters = append(wrongLetters, input)
-				fault++
-				fmt.Println(Red + "Wrong guess!" + Reset)
-				fmt.Println("")
-			} else {
-				fmt.Println(Red + "You already tried that letter!" + Reset)
-				fmt.Println("")
-			}
-		}
-
 	}
 	ClearScreen()
 	fmt.Println(Green + "Congratulations, you won!" + Reset)
+	fmt.Println(Green + "The word was: " + word + Reset)
+	if score <= 0 {
+		score = 0
+	}
+	fmt.Print(Green + "Score: " + Reset)
+	fmt.Print(score)
 	DisplayHangman(fault)
 }
